@@ -120,13 +120,4 @@ The app listens on <http://127.0.0.1:8000/>.
 - Keep prompts short and specific; the AI returns a concise message for the Twilio voice call.
 - If a number cannot be parsed or is not a Twilio test number, the app warns and skips the call.
 
-## Screenshots / Flow Preview
-
-```
-Home (Forms + Recent Calls)  -->  Submit Numbers  -->  Background Dialing  -->  Dashboard Summary
-```
-
-## Disclaimer
-
-> This app uses Twilio **test credentials**. Do **not** make real calls. Replace the default test numbers only with other Twilio-approved sandbox numbers.
 
