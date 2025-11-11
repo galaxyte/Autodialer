@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Autodialer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{{ request.url_for('static', path='style.css') }}" />
+  </head>
+  <body class="min-h-screen bg-slate-900 text-slate-100">
+    <header class="py-8">
+      <div class="container mx-auto px-4">
+        <div class="flex flex-col gap-2">
+          <h1 class="text-3xl font-semibold">Autodialer</h1>
+          <p class="text-slate-400">
+            Upload Twilio test numbers or instruct the AI assistant to place automated calls.
+          </p>
+          <div class="flex items-center gap-3 text-sm text-slate-400">
+            <a href="{{ request.url_for('dashboard') }}" class="underline hover:text-emerald-300">Dashboard</a>
+            <a href="{{ request.url_for('export_logs') }}" class="underline hover:text-emerald-300">Download Call Logs</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="container mx-auto px-4 pb-16">
+      {% if alert %}
+        <div class="mb-6 rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm text-emerald-200">
+          {{ alert }}
+        </div>
+      {% endif %}
+
+      {% if warnings %}
+        <div class="mb-6 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-200">
+          <p class="font-semibold">Warnings</p>
+          <ul class="list-disc space-y-1 pl-5">
+            {% for warning in warnings %}
+              <li>{{ warning }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+      <section class="grid gap-6 lg:grid-cols-2">
+        <article class="round-box">
+          <h2 class="text-xl font-semibold">Upload Numbers</h2>
+          <p class="text-sm text-slate-300">
+            Paste up to 100 Twilio test numbers (starting with +1500) or upload a CSV file. Indian numbers are validated but blocked for safety.
+          </p>
+          <form
+            method="post"
+            action="{{ request.url_for('upload_numbers') }}"
+            enctype="multipart/form-data"
+            class="mt-4 flex flex-col gap-4"
+          >
+            <label class="flex flex-col gap-2 text-sm">
+              <span>Numbers (comma, space or newline separated)</span>
+              <textarea
+                name="numbers_text"
+                rows="6"
+                class="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100"
+                placeholder="+15005550006&#10;+15005550009"
+              ></textarea>
+            </label>
+
+            <label class="flex flex-col gap-2 text-sm">
+              <span>Upload CSV (first column should contain phone numbers)</span>
+              <input
+                type="file"
+                name="numbers_file"
+                accept=".csv"
+                class="block w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100"
+              />
+            </label>
+
+            <button
+              type="submit"
+              class="inline-flex items-center justify-center gap-2 rounded-md bg-emerald-500 px-4 py-2 text-sm font-medium text-slate-900 hover:bg-emerald-400"
+            >
+              Queue Calls
+            </button>
+          </form>
+        </article>
+
+        <article class="round-box">
+          <h2 class="text-xl font-semibold">AI Prompt</h2>
+          <p class="text-sm text-slate-300">
+            Describe who to call and what to say. Example: “Call +15005550006 and tell them about the AeroLeads demo tomorrow.”
+          </p>
+          <form
+            method="post"
+            action="{{ request.url_for('handle_prompt') }}"
+            class="mt-4 flex flex-col gap-4"
+          >
+            <label class="flex flex-col gap-2 text-sm">
+              <span>Prompt</span>
+              <textarea
+                name="prompt"
+                rows="6"
+                required
+                class="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100"
+                placeholder="Call +15005550006 and tell them about our product launch."
+              ></textarea>
+            </label>
+
+            <button
+              type="submit"
+              class="inline-flex items-center justify-center gap-2 rounded-md bg-indigo-500 px-4 py-2 text-sm font-medium text-slate-50 hover:bg-indigo-400"
+            >
+              Send to AI
+            </button>
+          </form>
+          <p class="mt-4 text-xs text-slate-400">
+            Calls are placed strictly against Twilio test numbers. Voicemail message is converted to speech automatically.
+          </p>
+        </article>
+      </section>
+
+      <section class="mt-12 round-box">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h2 class="text-xl font-semibold">Recent Calls</h2>
+            <p class="text-sm text-slate-300">Latest {{ call_logs|length }} logs</p>
+          </div>
+          <div class="grid grid-cols-2 gap-4 text-sm md:grid-cols-4">
+            <div class="stat-card bg-emerald-500/10 text-emerald-200">
+              <span class="text-xs uppercase tracking-wide text-emerald-300">Success</span>
+              <strong class="text-2xl font-semibold">{{ stats.success }}</strong>
+            </div>
+            <div class="stat-card bg-amber-500/10 text-amber-200">
+              <span class="text-xs uppercase tracking-wide text-amber-300">Queued</span>
+              <strong class="text-2xl font-semibold">{{ stats.queued }}</strong>
+            </div>
+            <div class="stat-card bg-rose-500/10 text-rose-200">
+              <span class="text-xs uppercase tracking-wide text-rose-300">Failed</span>
+              <strong class="text-2xl font-semibold">{{ stats.failed }}</strong>
+            </div>
+            <div class="stat-card bg-slate-700/40 text-slate-200">
+              <span class="text-xs uppercase tracking-wide text-slate-300">Skipped</span>
+              <strong class="text-2xl font-semibold">{{ stats.skipped }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="mt-6 w-full min-w-[640px] table-auto text-left text-sm">
+            <thead class="border-b border-slate-700 text-xs uppercase tracking-wider text-slate-400">
+              <tr>
+                <th class="px-3 py-2">Number</th>
+                <th class="px-3 py-2">Status</th>
+                <th class="px-3 py-2">Duration</th>
+                <th class="px-3 py-2">Message</th>
+                <th class="px-3 py-2">Error</th>
+                <th class="px-3 py-2">Timestamp</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+              {% for log in call_logs %}
+                <tr class="hover:bg-slate-800/40">
+                  <td class="px-3 py-2 font-mono text-sm">{{ log.number }}</td>
+                  <td class="px-3 py-2">
+                    <span class="status-pill status-{{ log.status.value if log.status else log.status }}">
+                      {{ log.status.value if log.status else log.status }}
+                    </span>
+                  </td>
+                  <td class="px-3 py-2">{{ log.duration or "&mdash;" }}</td>
+                  <td class="px-3 py-2 max-w-xs truncate" title="{{ log.message }}">{{ log.message or "&mdash;" }}</td>
+                  <td class="px-3 py-2 max-w-xs truncate" title="{{ log.error }}">{{ log.error or "&mdash;" }}</td>
+                  <td class="px-3 py-2 text-xs text-slate-400">
+                    {{ log.created_at.strftime("%Y-%m-%d %H:%M:%S") if log.created_at else "" }}
+                  </td>
+                </tr>
+              {% else %}
+                <tr>
+                  <td colspan="6" class="px-3 py-4 text-center text-slate-400">
+                    No calls yet. Start by uploading Twilio test numbers or using the AI prompt.
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <footer class="border-t border-slate-800 py-6 text-center text-xs text-slate-500">
+      This app uses Twilio test credentials. Do not make real calls.
+    </footer>
+  </body>
+</html>
+

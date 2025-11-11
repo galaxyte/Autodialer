@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Autodialer Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{{ request.url_for('static', path='style.css') }}" />
+  </head>
+  <body class="min-h-screen bg-slate-900 text-slate-100">
+    <header class="border-b border-slate-800 bg-slate-900/70 py-6 backdrop-blur">
+      <div class="container mx-auto flex flex-col gap-2 px-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h1 class="text-3xl font-semibold">Call Dashboard</h1>
+          <p class="text-sm text-slate-400">
+            End-to-end visibility into Autodialer call activity.
+          </p>
+        </div>
+        <nav class="flex items-center gap-4 text-sm text-slate-400">
+          <a href="{{ request.url_for('index') }}" class="underline hover:text-emerald-300">Home</a>
+          <a href="{{ request.url_for('export_logs') }}" class="underline hover:text-emerald-300">Download CSV</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-10">
+      <section class="round-box">
+        <div class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h2 class="text-xl font-semibold">Campaign Overview</h2>
+            <p class="text-sm text-slate-400">
+              Total calls recorded: {{ total_calls }}
+            </p>
+          </div>
+          <div class="grid gap-4 text-sm md:grid-cols-4">
+            <div class="stat-card bg-emerald-500/10 text-emerald-200">
+              <span class="text-xs uppercase tracking-wide text-emerald-300">Success</span>
+              <strong class="text-3xl font-semibold">{{ stats.success }}</strong>
+            </div>
+            <div class="stat-card bg-amber-500/10 text-amber-200">
+              <span class="text-xs uppercase tracking-wide text-amber-300">Queued</span>
+              <strong class="text-3xl font-semibold">{{ stats.queued }}</strong>
+            </div>
+            <div class="stat-card bg-rose-500/10 text-rose-200">
+              <span class="text-xs uppercase tracking-wide text-rose-300">Failed</span>
+              <strong class="text-3xl font-semibold">{{ stats.failed }}</strong>
+            </div>
+            <div class="stat-card bg-slate-700/40 text-slate-200">
+              <span class="text-xs uppercase tracking-wide text-slate-300">Skipped</span>
+              <strong class="text-3xl font-semibold">{{ stats.skipped }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-8 overflow-x-auto">
+          <table class="w-full min-w-[720px] table-auto text-left text-sm">
+            <thead class="border-b border-slate-700 text-xs uppercase tracking-wider text-slate-400">
+              <tr>
+                <th class="px-3 py-3">Id</th>
+                <th class="px-3 py-3">Number</th>
+                <th class="px-3 py-3">Status</th>
+                <th class="px-3 py-3">Duration</th>
+                <th class="px-3 py-3">Message</th>
+                <th class="px-3 py-3">Error</th>
+                <th class="px-3 py-3">Call SID</th>
+                <th class="px-3 py-3">Created</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+              {% for log in call_logs %}
+                <tr class="hover:bg-slate-800/40">
+                  <td class="px-3 py-3 font-mono text-xs">#{{ log.id }}</td>
+                  <td class="px-3 py-3 font-mono text-sm">{{ log.number }}</td>
+                  <td class="px-3 py-3">
+                    <span class="status-pill status-{{ log.status.value if log.status else log.status }}">
+                      {{ log.status.value if log.status else log.status }}
+                    </span>
+                  </td>
+                  <td class="px-3 py-3">{{ log.duration or "—" }}</td>
+                  <td class="px-3 py-3 max-w-xs truncate" title="{{ log.message }}">{{ log.message or "—" }}</td>
+                  <td class="px-3 py-3 max-w-xs truncate" title="{{ log.error }}">{{ log.error or "—" }}</td>
+                  <td class="px-3 py-3 font-mono text-xs">{{ log.call_sid or "—" }}</td>
+                  <td class="px-3 py-3 text-xs text-slate-400">
+                    {{ log.created_at.strftime("%Y-%m-%d %H:%M:%S") if log.created_at else "" }}
+                  </td>
+                </tr>
+              {% else %}
+                <tr>
+                  <td colspan="8" class="px-3 py-6 text-center text-slate-400">
+                    No call activity yet. Queue a batch or use the AI prompt to get started.
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <footer class="border-t border-slate-800 py-6 text-center text-xs text-slate-500">
+      This app uses Twilio test credentials. Do not make real calls.
+    </footer>
+  </body>
+</html>
+
